@@ -6,7 +6,7 @@ const productsRouter = require('./routes/products');
 const categoriesRouter = require('./routes/categories');
 const transactionsRouter = require('./routes/transactions');
 const authRouter = require('./routes/auth');
-const { verifyToken } = require('./middleware/auth');
+const { verifyToken, requireAdmin } = require('./middleware/auth');
 const { initDatabase } = require('./db');
 
 const app = express();
@@ -26,8 +26,14 @@ app.use(async (req, res, next) => {
 });
 
 app.use('/api/auth', authRouter);
-app.use('/api/products', verifyToken, productsRouter);
-app.use('/api/categories', verifyToken, categoriesRouter);
+app.use('/api/products', verifyToken, (req, res, next) => {
+  if (req.method === 'GET') return next();
+  return requireAdmin(req, res, next);
+}, productsRouter);
+app.use('/api/categories', verifyToken, (req, res, next) => {
+  if (req.method === 'GET') return next();
+  return requireAdmin(req, res, next);
+}, categoriesRouter);
 app.use('/api/transactions', verifyToken, transactionsRouter);
 
 app.get('/', (req, res) => {

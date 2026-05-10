@@ -10,6 +10,8 @@ import QtyModal from './components/QtyModal';
 import CategoryManagerModal from './components/CategoryManagerModal';
 import SalesReportModal from './components/SalesReportModal';
 import TrashModal from './components/TrashModal';
+import TransactionHistoryModal from './components/TransactionHistoryModal';
+import UserManagerModal from './components/UserManagerModal';
 import { getProducts, getCategories, createProduct, updateProduct, deleteProduct, createCategory, createTransaction } from './api';
 import toast from 'react-hot-toast';
 
@@ -45,11 +47,14 @@ export default function App() {
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showSalesReport, setShowSalesReport] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
+  const [showTransactionHistory, setShowTransactionHistory] = useState(false);
+  const [showUserManager, setShowUserManager] = useState(false);
 
   // Derived
   const totalBelanja = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const paymentNum = Number(paymentAmount) || 0;
   const kembalian = paymentNum - totalBelanja;
+  const isAdmin = currentUser?.role === 'admin';
 
   // Check auth on mount
   useEffect(() => {
@@ -92,6 +97,10 @@ export default function App() {
     setCurrentUser(null);
     setCart([]);
     setPaymentAmount('');
+    setShowSalesReport(false);
+    setShowTrash(false);
+    setShowTransactionHistory(false);
+    setShowUserManager(false);
     toast.success('Logout berhasil');
   };
 
@@ -269,10 +278,12 @@ export default function App() {
             totalBelanja={totalBelanja}
             paymentAmount={paymentNum}
             kembalian={kembalian}
-            cartCount={cart.length}
             formatRupiah={formatRupiah}
             onShowReport={() => setShowSalesReport(true)}
+            onShowHistory={() => setShowTransactionHistory(true)}
+            onShowUsers={() => setShowUserManager(true)}
             onLogout={handleLogout}
+            user={currentUser}
           />
 
           <div className="main-content">
@@ -291,6 +302,7 @@ export default function App() {
               onManageCategory={() => setShowCategoryManager(true)}
               onShowTrash={() => setShowTrash(true)}
               formatRupiah={formatRupiah}
+              isAdmin={isAdmin}
             />
 
             <CartPanel
@@ -307,7 +319,7 @@ export default function App() {
             />
           </div>
 
-          {showProductForm && (
+          {isAdmin && showProductForm && (
             <ProductFormModal
               product={editingProduct}
               categories={categories}
@@ -317,7 +329,7 @@ export default function App() {
             />
           )}
 
-          {showCategoryManager && (
+          {isAdmin && showCategoryManager && (
             <CategoryManagerModal
               categories={categories}
               onClose={() => setShowCategoryManager(false)}
@@ -343,18 +355,33 @@ export default function App() {
             />
           )}
 
-          {showSalesReport && (
+          {isAdmin && showSalesReport && (
             <SalesReportModal 
               onClose={() => setShowSalesReport(false)} 
               formatRupiah={formatRupiah} 
             />
           )}
 
-          {showTrash && (
+          {isAdmin && showTrash && (
             <TrashModal
               onClose={() => setShowTrash(false)}
               onRestored={loadData}
               formatRupiah={formatRupiah}
+            />
+          )}
+
+          {isAdmin && showTransactionHistory && (
+            <TransactionHistoryModal
+              onClose={() => setShowTransactionHistory(false)}
+              formatRupiah={formatRupiah}
+            />
+          )}
+
+          {isAdmin && showUserManager && (
+            <UserManagerModal
+              currentUser={currentUser}
+              onClose={() => setShowUserManager(false)}
+              onCurrentUserUpdated={setCurrentUser}
             />
           )}
         </div>

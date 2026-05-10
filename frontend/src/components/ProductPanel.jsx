@@ -15,7 +15,8 @@ export default function ProductPanel({
   onAddProduct,
   onManageCategory,
   onShowTrash,
-  formatRupiah
+  formatRupiah,
+  isAdmin = false
 }) {
   const getCategoryClass = (catName) => {
     if (!catName) return '';
@@ -32,6 +33,7 @@ export default function ProductPanel({
           <FiPackage className="panel-title-icon" />
           Katalog Produk
         </h2>
+        {isAdmin && (
         <div style={{ display: 'flex', gap: '8px' }}>
           <button
             className="btn btn-ghost"
@@ -61,6 +63,7 @@ export default function ProductPanel({
             Tambah Produk
           </button>
         </div>
+        )}
       </div>
 
       {/* Search */}
@@ -108,7 +111,9 @@ export default function ProductPanel({
           <div className="empty-products">
             <div className="empty-products-icon">📦</div>
             <p style={{ fontWeight: 500 }}>Belum ada produk</p>
-            <p style={{ fontSize: '0.8rem', marginTop: 4 }}>Klik "Tambah Produk" untuk menambahkan</p>
+            <p style={{ fontSize: '0.8rem', marginTop: 4 }}>
+              {isAdmin ? 'Klik "Tambah Produk" untuk menambahkan' : 'Belum ada produk tersedia'}
+            </p>
           </div>
         ) : (
           products.map((product, index) => (
@@ -121,6 +126,7 @@ export default function ProductPanel({
             >
               <div className="product-card-header">
                 <div className="product-card-name">{product.name}</div>
+                {isAdmin && (
                 <div className="product-card-actions">
                   <button
                     className="product-card-btn edit"
@@ -139,6 +145,7 @@ export default function ProductPanel({
                     <FiTrash2 />
                   </button>
                 </div>
+                )}
               </div>
               <div className="product-card-price">{formatRupiah(product.price)}</div>
               <div className={`product-card-stock ${product.stock <= 5 ? 'low' : ''}`}>

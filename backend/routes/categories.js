@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const { requireAdmin } = require('../middleware/auth');
 
 // GET all categories (exclude soft deleted)
 router.get('/', async (req, res) => {
@@ -57,7 +58,7 @@ router.delete('/:id(\\d+)', async (req, res) => {
 });
 
 // GET deleted categories (trash)
-router.get('/trash/list', async (req, res) => {
+router.get('/trash/list', requireAdmin, async (req, res) => {
   try {
     const { rows } = await pool.query(
       'SELECT * FROM categories WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC'

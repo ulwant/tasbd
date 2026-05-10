@@ -44,6 +44,14 @@ export const getTransactions = (params = {}) => {
 };
 export const getTransaction = (id) => request(`/transactions/${id}`);
 
+// Users
+export const getCurrentUser = () => request('/auth/me');
+export const getUsers = () => request('/auth/users');
+export const updateUserRole = (id, role) => request(`/auth/users/${id}/role`, {
+  method: 'PUT',
+  body: JSON.stringify({ role })
+});
+
 // Trash
 export const getTrashProducts = () => request('/products/trash/list');
 export const restoreProduct = (id) => request(`/products/${id}/restore`, { method: 'PUT' });

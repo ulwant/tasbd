@@ -6,6 +6,7 @@ export default function LoginPage({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
+  const [role, setRole] = useState('cashier');
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -16,7 +17,7 @@ export default function LoginPage({ onLoginSuccess }) {
     try {
       const endpoint = isRegister ? 'register' : 'login';
       const payload = isRegister
-        ? { username, email, password, role: 'cashier' }
+        ? { username, email, password, role }
         : { username, password };
 
       const response = await fetch(`${API_URL}/auth/${endpoint}`, {
@@ -39,6 +40,7 @@ export default function LoginPage({ onLoginSuccess }) {
         setUsername('');
         setEmail('');
         setPassword('');
+        setRole('cashier');
       } else {
         // Login successful
         localStorage.setItem('token', data.token);
@@ -96,6 +98,22 @@ export default function LoginPage({ onLoginSuccess }) {
             </div>
           )}
 
+          {isRegister && (
+            <div className="form-group">
+              <label className="form-label">
+                Role
+              </label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="form-select"
+              >
+                <option value="cashier">Kasir</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          )}
+
           <div className="form-group">
             <label className="form-label">
               Password
@@ -129,6 +147,7 @@ export default function LoginPage({ onLoginSuccess }) {
                 setUsername('');
                 setEmail('');
                 setPassword('');
+                setRole('cashier');
               }}
               className="login-link"
             >

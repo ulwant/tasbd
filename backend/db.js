@@ -53,6 +53,7 @@ async function initDatabase() {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS transactions (
           id SERIAL PRIMARY KEY,
+          user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
           invoice_number VARCHAR(50) NOT NULL,
           total_amount NUMERIC(12,2) NOT NULL,
           payment_amount NUMERIC(12,2) NOT NULL,
@@ -76,6 +77,7 @@ async function initDatabase() {
       await pool.query('ALTER TABLE categories ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ NULL');
       await pool.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()');
       await pool.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ NULL');
+      await pool.query('ALTER TABLE transactions ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE SET NULL');
     })();
   }
 

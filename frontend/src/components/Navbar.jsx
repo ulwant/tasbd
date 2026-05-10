@@ -1,7 +1,19 @@
 import React from 'react';
-import { FiShoppingCart, FiFileText, FiLogOut } from 'react-icons/fi';
+import { FiClock, FiFileText, FiLogOut, FiUsers } from 'react-icons/fi';
 
-export default function Navbar({ totalBelanja, paymentAmount, kembalian, cartCount, formatRupiah, onShowReport, onLogout }) {
+export default function Navbar({
+  totalBelanja,
+  paymentAmount,
+  kembalian,
+  formatRupiah,
+  onShowReport,
+  onShowHistory,
+  onShowUsers,
+  onLogout,
+  user
+}) {
+  const isAdmin = user?.role === 'admin';
+
   return (
     <nav className="navbar" id="navbar-main">
       <div className="navbar-brand">
@@ -12,6 +24,8 @@ export default function Navbar({ totalBelanja, paymentAmount, kembalian, cartCou
       </div>
 
       <div style={{ marginLeft: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {isAdmin && (
+          <>
         <button 
           className="btn" 
           style={{ 
@@ -28,6 +42,42 @@ export default function Navbar({ totalBelanja, paymentAmount, kembalian, cartCou
         >
           <FiFileText /> Rekap Harian
         </button>
+
+        <button
+          className="btn"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'transparent',
+            border: '1px solid #30363d',
+            color: '#c9d1d9',
+            padding: '6px 12px',
+            fontSize: '0.85rem'
+          }}
+          onClick={onShowHistory}
+        >
+          <FiClock /> History Transaksi
+        </button>
+
+        <button
+          className="btn"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'transparent',
+            border: '1px solid #30363d',
+            color: '#c9d1d9',
+            padding: '6px 12px',
+            fontSize: '0.85rem'
+          }}
+          onClick={onShowUsers}
+        >
+          <FiUsers /> Akun
+        </button>
+          </>
+        )}
 
         {onLogout && (
           <button 
@@ -52,6 +102,13 @@ export default function Navbar({ totalBelanja, paymentAmount, kembalian, cartCou
 
       <div className="navbar-stats">
         <div className="navbar-stat">
+          <div className="navbar-stat-label">Akun</div>
+          <div className="navbar-stat-value blue">{user?.username || '-'}</div>
+          <div style={{ fontSize: '0.68rem', color: isAdmin ? '#f0b429' : '#3fb950', textTransform: 'uppercase', fontWeight: 700 }}>
+            {isAdmin ? 'Admin' : 'Kasir'}
+          </div>
+        </div>
+        <div className="navbar-stat">
           <div className="navbar-stat-label">Total Belanja</div>
           <div className="navbar-stat-value">{formatRupiah(totalBelanja)}</div>
         </div>
@@ -64,28 +121,6 @@ export default function Navbar({ totalBelanja, paymentAmount, kembalian, cartCou
           <div className="navbar-stat-value green">
             {kembalian >= 0 ? formatRupiah(kembalian) : '-' + formatRupiah(Math.abs(kembalian))}
           </div>
-        </div>
-        <div style={{ position: 'relative', marginLeft: 8 }}>
-          <FiShoppingCart size={20} color="#8b949e" />
-          {cartCount > 0 && (
-            <span style={{
-              position: 'absolute',
-              top: -6,
-              right: -8,
-              background: '#f85149',
-              color: '#fff',
-              fontSize: '0.6rem',
-              fontWeight: 700,
-              width: 16,
-              height: 16,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              {cartCount}
-            </span>
-          )}
         </div>
       </div>
     </nav>

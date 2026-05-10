@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const { requireAdmin } = require('../middleware/auth');
 
 // GET all products (exclude soft deleted)
 router.get('/', async (req, res) => {
@@ -93,7 +94,7 @@ router.delete('/:id(\\d+)', async (req, res) => {
 });
 
 // GET deleted products (trash)
-router.get('/trash/list', async (req, res) => {
+router.get('/trash/list', requireAdmin, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT p.*, c.name as category_name 

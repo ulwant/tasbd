@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const { requireAdmin } = require('../middleware/auth');
 
 // Generate invoice number
 function generateInvoice() {
@@ -36,8 +37,8 @@ router.post('/', async (req, res) => {
 
     // Insert transaction
     const txResult = await client.query(
-      'INSERT INTO transactions (invoice_number, total_amount, payment_amount, change_amount) VALUES ($1, $2, $3, $4) RETURNING id',
-      [invoice_number, total_amount, payment_amount, change_amount]
+      'INSERT INTO transactions (user_id, invoice_number, total_amount, payment_amount, change_amount) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [req.user.id, invoice_number, total_amount, payment_amount, change_amount]
     );
     const transactionId = txResult.rows[0].id;
 
@@ -61,6 +62,7 @@ router.post('/', async (req, res) => {
       total_amount,
       payment_amount,
       change_amount,
+      cashier: req.user.username,
       items,
       created_at: new Date()
     });
@@ -73,18 +75,22 @@ router.post('/', async (req, res) => {
 });
 
 // GET all transactions (with optional date filter)
-router.get('/', async (req, res) => {
+router.get('/', requireAdmin, async (req, res) => {
   try {
     const { date } = req.query;
-    let query = 'SELECT * FROM transactions';
+    let query = `
+      SELECT t.*, COALESCE(u.username, 'Tidak tercatat') AS cashier_name, u.email AS cashier_email
+      FROM transactions t
+      LEFT JOIN users u ON t.user_id = u.id
+    `;
     let params = [];
 
     if (date) {
-      query += ' WHERE DATE(created_at) = $1';
+      query += ' WHERE DATE(t.created_at) = $1';
       params.push(date);
     }
 
-    query += ' ORDER BY created_at DESC';
+    query += ' ORDER BY t.created_at DESC';
     const { rows } = await pool.query(query, params);
     
     res.json(rows);
@@ -94,9 +100,15 @@ router.get('/', async (req, res) => {
 });
 
 // GET single transaction with items
-router.get('/:id(\\d+)', async (req, res) => {
+router.get('/:id(\\d+)', requireAdmin, async (req, res) => {
   try {
-    const txRows = await pool.query('SELECT * FROM transactions WHERE id = $1', [req.params.id]);
+    const txRows = await pool.query(
+      `SELECT t.*, COALESCE(u.username, 'Tidak tercatat') AS cashier_name, u.email AS cashier_email
+       FROM transactions t
+       LEFT JOIN users u ON t.user_id = u.id
+       WHERE t.id = $1`,
+      [req.params.id]
+    );
     if (txRows.rows.length === 0) return res.status(404).json({ error: 'Transaksi tidak ditemukan' });
 
     const items = await pool.query('SELECT * FROM transaction_items WHERE transaction_id = $1', [req.params.id]);
