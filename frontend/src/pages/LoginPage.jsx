@@ -55,55 +55,56 @@ export default function LoginPage({ onLoginSuccess }) {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
-      <div className="bg-white rounded-lg shadow-xl p-8 w-96">
-        <h1 className="text-3xl font-bold text-center mb-2 text-gray-800">
-          KasirNuril
-        </h1>
-        <p className="text-center text-gray-600 mb-8">
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-brand">
+          <div className="navbar-brand-icon">K</div>
+          <h1>Kasir<span>Nuril</span></h1>
+        </div>
+        <p className="login-subtitle">
           {isRegister ? 'Create an Account' : 'Welcome Back'}
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="form-group">
+            <label className="form-label">
               Username
             </label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="form-input"
               placeholder="Enter username"
               required
             />
           </div>
 
           {isRegister && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="form-group">
+              <label className="form-label">
                 Email
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="form-input"
                 placeholder="Enter email"
                 required
               />
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="form-group">
+            <label className="form-label">
               Password
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="form-input"
               placeholder="Enter password"
               required
             />
@@ -112,14 +113,14 @@ export default function LoginPage({ onLoginSuccess }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400"
+            className="btn btn-accent btn-block btn-lg"
           >
             {loading ? 'Loading...' : isRegister ? 'Register' : 'Login'}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
+        <div className="login-footer">
+          <p>
             {isRegister ? 'Already have an account? ' : "Don't have an account? "}
             <button
               type="button"
@@ -129,7 +130,7 @@ export default function LoginPage({ onLoginSuccess }) {
                 setEmail('');
                 setPassword('');
               }}
-              className="text-blue-600 font-semibold hover:underline"
+              className="login-link"
             >
               {isRegister ? 'Login' : 'Register'}
             </button>
