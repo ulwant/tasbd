@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../db');
+const { pool } = require('../db');
 
 // GET all products (exclude soft deleted)
 router.get('/', async (req, res) => {
@@ -15,16 +15,16 @@ router.get('/', async (req, res) => {
     const params = [];
 
     if (category_id) {
-      query += ' AND p.category_id = ?';
       params.push(category_id);
+      query += ` AND p.category_id = $${params.length}`;
     }
     if (search) {
-      query += ' AND p.name LIKE ?';
       params.push(`%${search}%`);
+      query += ` AND p.name ILIKE $${params.length}`;
     }
     query += ' ORDER BY p.name';
 
-    const [rows] = await pool.query(query, params);
+    const { rows } = await pool.query(query, params);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -32,10 +32,10 @@ router.get('/', async (req, res) => {
 });
 
 // GET single product (exclude soft deleted)
-router.get('/:id', async (req, res) => {
+router.get('/:id(\\d+)', async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      'SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ? AND p.deleted_at IS NULL',
+    const { rows } = await pool.query(
+      'SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = $1 AND p.deleted_at IS NULL',
       [req.params.id]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Produk tidak ditemukan' });
@@ -52,22 +52,22 @@ router.post('/', async (req, res) => {
     if (!name || price === undefined) {
       return res.status(400).json({ error: 'Nama dan harga produk wajib diisi' });
     }
-    const [result] = await pool.query(
-      'INSERT INTO products (name, price, stock, category_id) VALUES (?, ?, ?, ?)',
+    const result = await pool.query(
+      'INSERT INTO products (name, price, stock, category_id) VALUES ($1, $2, $3, $4) RETURNING id, name, price, stock, category_id',
       [name, price, stock || 0, category_id || null]
     );
-    res.status(201).json({ id: result.insertId, name, price, stock: stock || 0, category_id });
+    res.status(201).json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // PUT update product
-router.put('/:id', async (req, res) => {
+router.put('/:id(\\d+)', async (req, res) => {
   try {
     const { name, price, stock, category_id } = req.body;
     await pool.query(
-      'UPDATE products SET name = ?, price = ?, stock = ?, category_id = ? WHERE id = ? AND deleted_at IS NULL',
+      'UPDATE products SET name = $1, price = $2, stock = $3, category_id = $4, updated_at = NOW() WHERE id = $5 AND deleted_at IS NULL',
       [name, price, stock, category_id || null, req.params.id]
     );
     res.json({ id: parseInt(req.params.id), name, price, stock, category_id });
@@ -77,13 +77,13 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE product — soft delete
-router.delete('/:id', async (req, res) => {
+router.delete('/:id(\\d+)', async (req, res) => {
   try {
-    const [result] = await pool.query(
-      'UPDATE products SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL',
+    const result = await pool.query(
+      'UPDATE products SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL',
       [req.params.id]
     );
-    if (result.affectedRows === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Produk tidak ditemukan atau sudah dihapus' });
     }
     res.json({ message: 'Produk berhasil dihapus' });
@@ -95,7 +95,7 @@ router.delete('/:id', async (req, res) => {
 // GET deleted products (trash)
 router.get('/trash/list', async (req, res) => {
   try {
-    const [rows] = await pool.query(
+    const { rows } = await pool.query(
       `SELECT p.*, c.name as category_name 
        FROM products p 
        LEFT JOIN categories c ON p.category_id = c.id
@@ -109,13 +109,13 @@ router.get('/trash/list', async (req, res) => {
 });
 
 // PUT restore product from trash
-router.put('/:id/restore', async (req, res) => {
+router.put('/:id(\\d+)/restore', async (req, res) => {
   try {
-    const [result] = await pool.query(
-      'UPDATE products SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL',
+    const result = await pool.query(
+      'UPDATE products SET deleted_at = NULL, updated_at = NOW() WHERE id = $1 AND deleted_at IS NOT NULL',
       [req.params.id]
     );
-    if (result.affectedRows === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Produk tidak ditemukan di trash' });
     }
     res.json({ message: 'Produk berhasil dipulihkan' });
@@ -125,13 +125,13 @@ router.put('/:id/restore', async (req, res) => {
 });
 
 // DELETE product permanently (hard delete)
-router.delete('/:id/permanent', async (req, res) => {
+router.delete('/:id(\\d+)/permanent', async (req, res) => {
   try {
-    const [result] = await pool.query(
-      'DELETE FROM products WHERE id = ? AND deleted_at IS NOT NULL',
+    const result = await pool.query(
+      'DELETE FROM products WHERE id = $1 AND deleted_at IS NOT NULL',
       [req.params.id]
     );
-    if (result.affectedRows === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Produk tidak ditemukan di trash' });
     }
     res.json({ message: 'Produk berhasil dihapus permanen' });

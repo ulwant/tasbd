@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const pool = require('../db');
+const { pool } = require('../db');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -16,8 +16,11 @@ router.post('/register', async (req, res) => {
     }
 
     // Check if user exists
-    const [existingUser] = await pool.query('SELECT id FROM users WHERE username = ? OR email = ?', [username, email]);
-    if (existingUser.length > 0) {
+    const existingUser = await pool.query(
+      'SELECT id FROM users WHERE username = $1 OR email = $2',
+      [username, email]
+    );
+    if (existingUser.rows.length > 0) {
       return res.status(400).json({ error: 'Username or email already exists' });
     }
 
@@ -25,7 +28,7 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert user
-    await pool.query('INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)', [
+    await pool.query('INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4)', [
       username,
       email,
       hashedPassword,
@@ -49,12 +52,15 @@ router.post('/login', async (req, res) => {
     }
 
     // Find user
-    const [users] = await pool.query('SELECT id, username, email, password, role FROM users WHERE username = ?', [username]);
-    if (users.length === 0) {
+    const users = await pool.query(
+      'SELECT id, username, email, password, role FROM users WHERE username = $1',
+      [username]
+    );
+    if (users.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    const user = users[0];
+    const user = users.rows[0];
 
     // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
