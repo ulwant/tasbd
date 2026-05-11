@@ -16,6 +16,7 @@ export default function ProductPanel({
   onManageCategory,
   onShowTrash,
   formatRupiah,
+  getDiscountedPrice,
   isAdmin = false
 }) {
   const getCategoryClass = (catName) => {
@@ -147,7 +148,16 @@ export default function ProductPanel({
                 </div>
                 )}
               </div>
-              <div className="product-card-price">{formatRupiah(product.price)}</div>
+              {product.discount_type && product.discount_type !== 'none' ? (
+                <div className="product-card-price" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ textDecoration: 'line-through', fontSize: '0.8em', color: '#8b949e', lineHeight: '1' }}>
+                    {formatRupiah(product.price)}
+                  </span>
+                  <span style={{ color: '#3fb950' }}>{formatRupiah(getDiscountedPrice(product))}</span>
+                </div>
+              ) : (
+                <div className="product-card-price">{formatRupiah(product.price)}</div>
+              )}
               <div className={`product-card-stock ${product.stock <= 5 ? 'low' : ''}`}>
                 Stok: {product.stock}
                 {product.stock <= 5 && product.stock > 0 && ' ⚠️'}

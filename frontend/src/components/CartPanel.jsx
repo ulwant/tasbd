@@ -51,7 +51,18 @@ export default function CartPanel({
               <div key={item.product_id} className="cart-item" id={`cart-item-${item.product_id}`}>
                 <div className="cart-item-info">
                   <div className="cart-item-name">{item.product_name}</div>
-                  <div className="cart-item-price">{formatRupiah(item.price)} / pcs</div>
+                  <div className="cart-item-price">
+                    {item.original_price && item.original_price !== item.price ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ textDecoration: 'line-through', fontSize: '0.85em', color: '#8b949e' }}>
+                          {formatRupiah(item.original_price)}
+                        </span>
+                        <span style={{ color: '#3fb950' }}>{formatRupiah(item.price)} / pcs</span>
+                      </span>
+                    ) : (
+                      <>{formatRupiah(item.price)} / pcs</>
+                    )}
+                  </div>
                 </div>
                 <div className="cart-item-controls">
                   <button

@@ -152,7 +152,24 @@ export default function App() {
     setShowQtyModal(true);
   };
 
+  const getDiscountedPrice = (product) => {
+    let price = Number(product.price);
+    if (!product.discount_type || product.discount_type === 'none') return price;
+    
+    let discount = 0;
+    let discountValue = Number(product.discount_value) || 0;
+    
+    if (product.discount_type === 'percent') {
+      discount = (price * discountValue) / 100;
+    } else if (product.discount_type === 'fixed') {
+      discount = discountValue;
+    }
+    
+    return Math.max(0, price - discount);
+  };
+
   const handleAddToCart = (product, qty) => {
+    const finalPrice = getDiscountedPrice(product);
     setCart(prev => {
       const existing = prev.find(item => item.product_id === product.id);
       if (existing) {
@@ -172,7 +189,8 @@ export default function App() {
         return [...prev, {
           product_id: product.id,
           product_name: product.name,
-          price: Number(product.price),
+          price: finalPrice,
+          original_price: Number(product.price),
           quantity: qty,
           stock: product.stock,
           category_name: product.category_name
@@ -295,6 +313,8 @@ export default function App() {
               onManageCategory={() => setShowCategoryManager(true)}
               onShowTrash={() => setShowTrash(true)}
               formatRupiah={formatRupiah}
+              getDiscountedPrice={getDiscountedPrice}
+              isAdmin={currentUser?.role === 'admin'}
             />
 
             <CartPanel

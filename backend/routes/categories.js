@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { pool } = require('../db');
-const { requireAdmin } = require('../middleware/auth');
+const pool = require('../db');
+const { verifyAdmin } = require('../middleware/auth');
 
 // GET all categories (exclude soft deleted)
 router.get('/', async (req, res) => {
   try {
-    const { rows } = await pool.query(
+    const [rows] = await pool.query(
       'SELECT * FROM categories WHERE deleted_at IS NULL ORDER BY name'
     );
     res.json(rows);
@@ -20,8 +20,8 @@ router.post('/', async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Nama kategori wajib diisi' });
-    const result = await pool.query('INSERT INTO categories (name) VALUES ($1) RETURNING id, name', [name]);
-    res.status(201).json(result.rows[0]);
+    const [result] = await pool.query('INSERT INTO categories (name) VALUES (?)', [name]);
+    res.status(201).json({ id: result.insertId, name });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -32,7 +32,7 @@ router.put('/:id(\\d+)', async (req, res) => {
   try {
     const { name } = req.body;
     await pool.query(
-      'UPDATE categories SET name = $1 WHERE id = $2 AND deleted_at IS NULL',
+      'UPDATE categories SET name = ? WHERE id = ? AND deleted_at IS NULL',
       [name, req.params.id]
     );
     res.json({ id: parseInt(req.params.id), name });
@@ -44,11 +44,11 @@ router.put('/:id(\\d+)', async (req, res) => {
 // DELETE category — soft delete
 router.delete('/:id(\\d+)', async (req, res) => {
   try {
-    const result = await pool.query(
-      'UPDATE categories SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL',
+    const [result] = await pool.query(
+      'UPDATE categories SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL',
       [req.params.id]
     );
-    if (result.rowCount === 0) {
+    if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Kategori tidak ditemukan atau sudah dihapus' });
     }
     res.json({ message: 'Kategori berhasil dihapus' });
@@ -58,9 +58,9 @@ router.delete('/:id(\\d+)', async (req, res) => {
 });
 
 // GET deleted categories (trash)
-router.get('/trash/list', requireAdmin, async (req, res) => {
+router.get('/trash/list', verifyAdmin, async (req, res) => {
   try {
-    const { rows } = await pool.query(
+    const [rows] = await pool.query(
       'SELECT * FROM categories WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC'
     );
     res.json(rows);
@@ -72,11 +72,11 @@ router.get('/trash/list', requireAdmin, async (req, res) => {
 // PUT restore category from trash
 router.put('/:id(\\d+)/restore', async (req, res) => {
   try {
-    const result = await pool.query(
-      'UPDATE categories SET deleted_at = NULL WHERE id = $1 AND deleted_at IS NOT NULL',
+    const [result] = await pool.query(
+      'UPDATE categories SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL',
       [req.params.id]
     );
-    if (result.rowCount === 0) {
+    if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Kategori tidak ditemukan di trash' });
     }
     res.json({ message: 'Kategori berhasil dipulihkan' });
@@ -88,11 +88,11 @@ router.put('/:id(\\d+)/restore', async (req, res) => {
 // DELETE category permanently (hard delete)
 router.delete('/:id(\\d+)/permanent', async (req, res) => {
   try {
-    const result = await pool.query(
-      'DELETE FROM categories WHERE id = $1 AND deleted_at IS NOT NULL',
+    const [result] = await pool.query(
+      'DELETE FROM categories WHERE id = ? AND deleted_at IS NOT NULL',
       [req.params.id]
     );
-    if (result.rowCount === 0) {
+    if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Kategori tidak ditemukan di trash' });
     }
     res.json({ message: 'Kategori berhasil dihapus permanen' });
