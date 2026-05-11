@@ -95,6 +95,8 @@ export default function App() {
     localStorage.removeItem('user');
     setIsLoggedIn(false);
     setCurrentUser(null);
+    setSearchTerm('');
+    setActiveCategory(null);
     setCart([]);
     setPaymentAmount('');
     setShowSalesReport(false);
