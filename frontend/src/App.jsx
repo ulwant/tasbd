@@ -12,6 +12,7 @@ import SalesReportModal from './components/SalesReportModal';
 import TrashModal from './components/TrashModal';
 import TransactionHistoryModal from './components/TransactionHistoryModal';
 import UserManagerModal from './components/UserManagerModal';
+import DiscountManagerModal from './components/DiscountManagerModal';
 import { getProducts, getCategories, createProduct, updateProduct, deleteProduct, createCategory, createTransaction } from './api';
 import toast from 'react-hot-toast';
 
@@ -49,6 +50,7 @@ export default function App() {
   const [showTrash, setShowTrash] = useState(false);
   const [showTransactionHistory, setShowTransactionHistory] = useState(false);
   const [showUserManager, setShowUserManager] = useState(false);
+  const [showDiscountManager, setShowDiscountManager] = useState(false);
 
   // Derived
   const totalBelanja = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -282,6 +284,7 @@ export default function App() {
             onShowReport={() => setShowSalesReport(true)}
             onShowHistory={() => setShowTransactionHistory(true)}
             onShowUsers={() => setShowUserManager(true)}
+            onShowDiscounts={() => setShowDiscountManager(true)}
             onLogout={handleLogout}
             user={currentUser}
           />
@@ -382,6 +385,13 @@ export default function App() {
               currentUser={currentUser}
               onClose={() => setShowUserManager(false)}
               onCurrentUserUpdated={setCurrentUser}
+            />
+          )}
+
+          {isAdmin && showDiscountManager && (
+            <DiscountManagerModal
+              onClose={() => setShowDiscountManager(false)}
+              onDiscountUpdated={loadData}
             />
           )}
         </div>

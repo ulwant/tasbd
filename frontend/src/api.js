@@ -56,3 +56,10 @@ export const updateUserRole = (id, role) => request(`/auth/users/${id}/role`, {
 export const getTrashProducts = () => request('/products/trash/list');
 export const restoreProduct = (id) => request(`/products/${id}/restore`, { method: 'PUT' });
 export const permanentDeleteProduct = (id) => request(`/products/${id}/permanent`, { method: 'DELETE' });
+
+// Discounts
+export const getDiscountedProducts = () => request('/products/admin/discounts');
+export const setProductDiscount = (id, data) => request(`/products/${id}/discount`, {
+  method: 'PUT',
+  body: JSON.stringify(data)
+});

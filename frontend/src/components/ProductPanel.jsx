@@ -147,7 +147,21 @@ export default function ProductPanel({
                 </div>
                 )}
               </div>
-              <div className="product-card-price">{formatRupiah(product.price)}</div>
+              <div className="product-card-price">
+                {formatRupiah(product.price)}
+                {product.discount_type && product.discount_type !== 'none' && (
+                  <span style={{ 
+                    display: 'block', 
+                    fontSize: '0.75rem', 
+                    color: '#3fb950',
+                    marginTop: '4px'
+                  }}>
+                    {product.discount_type === 'percent' 
+                      ? `Diskon ${product.discount_value}%` 
+                      : `Diskon ${formatRupiah(product.discount_value)}`}
+                  </span>
+                )}
+              </div>
               <div className={`product-card-stock ${product.stock <= 5 ? 'low' : ''}`}>
                 Stok: {product.stock}
                 {product.stock <= 5 && product.stock > 0 && ' ⚠️'}
