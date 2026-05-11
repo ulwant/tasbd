@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FiX, FiTrash2, FiRefreshCw } from 'react-icons/fi';
+import { getTrashProducts, permanentDeleteProduct, restoreProduct } from '../api';
 
 export default function TrashModal({ onClose, onRestored, formatRupiah }) {
   const [deletedProducts, setDeletedProducts] = useState([]);
@@ -8,9 +9,7 @@ export default function TrashModal({ onClose, onRestored, formatRupiah }) {
   const fetchTrash = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/products/trash/list');
-      const data = await res.json();
-      setDeletedProducts(data);
+      setDeletedProducts(await getTrashProducts());
     } catch (err) {
       console.error(err);
     } finally {
@@ -24,7 +23,7 @@ export default function TrashModal({ onClose, onRestored, formatRupiah }) {
 
   const handleRestore = async (id) => {
     try {
-      await fetch(`/api/products/${id}/restore`, { method: 'PUT' });
+      await restoreProduct(id);
       await fetchTrash();
       onRestored();
     } catch (err) {
@@ -35,7 +34,7 @@ export default function TrashModal({ onClose, onRestored, formatRupiah }) {
   const handlePermanentDelete = async (id) => {
     if (!window.confirm('Hapus permanen? Data tidak bisa dikembalikan!')) return;
     try {
-      await fetch(`/api/products/${id}/permanent`, { method: 'DELETE' });
+      await permanentDeleteProduct(id);
       await fetchTrash();
     } catch (err) {
       console.error(err);
