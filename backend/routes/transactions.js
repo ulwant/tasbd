@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { pool } = require('../db');
-const { requireAdmin } = require('../middleware/auth');
+const pool = require('../db');
 
 // Generate invoice number
 function generateInvoice() {
@@ -18,14 +17,49 @@ function generateInvoice() {
 
 // POST create transaction
 router.post('/', async (req, res) => {
-  const client = await pool.connect();
+  const conn = await pool.getConnection();
   try {
     const { items, payment_amount } = req.body;
     if (!items || items.length === 0) {
       return res.status(400).json({ error: 'Keranjang kosong' });
     }
 
-    const total_amount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    // Get product details including discounts
+    let total_amount = 0;
+    const itemsWithDiscount = [];
+    
+    for (const item of items) {
+      const [productRows] = await conn.query(
+        'SELECT price, discount_type, discount_value FROM products WHERE id = ? AND deleted_at IS NULL',
+        [item.product_id]
+      );
+      
+      if (productRows.length === 0) {
+        throw new Error(`Produk dengan ID ${item.product_id} tidak ditemukan`);
+      }
+      
+      const product = productRows[0];
+      let discountAmount = 0;
+      
+      // Calculate discount
+      if (product.discount_type === 'percent') {
+        discountAmount = (product.price * product.discount_value) / 100;
+      } else if (product.discount_type === 'fixed') {
+        discountAmount = product.discount_value;
+      }
+      
+      const finalPrice = Math.max(0, product.price - discountAmount);
+      const subtotal = finalPrice * item.quantity;
+      total_amount += subtotal;
+      
+      itemsWithDiscount.push({
+        ...item,
+        final_price: finalPrice,
+        discount_amount: discountAmount,
+        subtotal: subtotal
+      });
+    }
+    
     if (payment_amount < total_amount) {
       return res.status(400).json({ error: 'Pembayaran kurang' });
     }
@@ -33,28 +67,28 @@ router.post('/', async (req, res) => {
     const change_amount = payment_amount - total_amount;
     const invoice_number = generateInvoice();
 
-    await client.query('BEGIN');
+    await conn.beginTransaction();
 
     // Insert transaction
-    const txResult = await client.query(
-      'INSERT INTO transactions (user_id, invoice_number, total_amount, payment_amount, change_amount) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-      [req.user.id, invoice_number, total_amount, payment_amount, change_amount]
+    const [txResult] = await conn.query(
+      'INSERT INTO transactions (invoice_number, total_amount, payment_amount, change_amount) VALUES (?, ?, ?, ?)',
+      [invoice_number, total_amount, payment_amount, change_amount]
     );
-    const transactionId = txResult.rows[0].id;
+    const transactionId = txResult.insertId;
 
     // Insert items & update stock
-    for (const item of items) {
-      await client.query(
-        'INSERT INTO transaction_items (transaction_id, product_id, product_name, price, quantity, subtotal) VALUES ($1, $2, $3, $4, $5, $6)',
-        [transactionId, item.product_id, item.product_name, item.price, item.quantity, item.price * item.quantity]
+    for (const item of itemsWithDiscount) {
+      await conn.query(
+        'INSERT INTO transaction_items (transaction_id, product_id, product_name, price, quantity, subtotal) VALUES (?, ?, ?, ?, ?, ?)',
+        [transactionId, item.product_id, item.product_name, item.final_price, item.quantity, item.subtotal]
       );
-      await client.query(
-        'UPDATE products SET stock = stock - $1, updated_at = NOW() WHERE id = $2',
+      await conn.query(
+        'UPDATE products SET stock = stock - ? WHERE id = ?',
         [item.quantity, item.product_id]
       );
     }
 
-    await client.query('COMMIT');
+    await conn.commit();
 
     res.status(201).json({
       id: transactionId,
@@ -62,36 +96,31 @@ router.post('/', async (req, res) => {
       total_amount,
       payment_amount,
       change_amount,
-      cashier: req.user.username,
-      items,
+      items: itemsWithDiscount,
       created_at: new Date()
     });
   } catch (error) {
-    await client.query('ROLLBACK');
+    await conn.rollback();
     res.status(500).json({ error: error.message });
   } finally {
-    client.release();
+    conn.release();
   }
 });
 
 // GET all transactions (with optional date filter)
-router.get('/', requireAdmin, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { date } = req.query;
-    let query = `
-      SELECT t.*, COALESCE(u.username, 'Tidak tercatat') AS cashier_name, u.email AS cashier_email
-      FROM transactions t
-      LEFT JOIN users u ON t.user_id = u.id
-    `;
+    let query = 'SELECT * FROM transactions';
     let params = [];
 
     if (date) {
-      query += ' WHERE DATE(t.created_at) = $1';
+      query += ' WHERE DATE(created_at) = ?';
       params.push(date);
     }
 
-    query += ' ORDER BY t.created_at DESC';
-    const { rows } = await pool.query(query, params);
+    query += ' ORDER BY created_at DESC';
+    const [rows] = await pool.query(query, params);
     
     res.json(rows);
   } catch (error) {
@@ -100,19 +129,13 @@ router.get('/', requireAdmin, async (req, res) => {
 });
 
 // GET single transaction with items
-router.get('/:id(\\d+)', requireAdmin, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const txRows = await pool.query(
-      `SELECT t.*, COALESCE(u.username, 'Tidak tercatat') AS cashier_name, u.email AS cashier_email
-       FROM transactions t
-       LEFT JOIN users u ON t.user_id = u.id
-       WHERE t.id = $1`,
-      [req.params.id]
-    );
-    if (txRows.rows.length === 0) return res.status(404).json({ error: 'Transaksi tidak ditemukan' });
+    const [txRows] = await pool.query('SELECT * FROM transactions WHERE id = ?', [req.params.id]);
+    if (txRows.length === 0) return res.status(404).json({ error: 'Transaksi tidak ditemukan' });
 
-    const items = await pool.query('SELECT * FROM transaction_items WHERE transaction_id = $1', [req.params.id]);
-    res.json({ ...txRows.rows[0], items: items.rows });
+    const [items] = await pool.query('SELECT * FROM transaction_items WHERE transaction_id = ?', [req.params.id]);
+    res.json({ ...txRows[0], items });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

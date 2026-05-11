@@ -10,6 +10,7 @@ import QtyModal from './components/QtyModal';
 import CategoryManagerModal from './components/CategoryManagerModal';
 import SalesReportModal from './components/SalesReportModal';
 import TrashModal from './components/TrashModal';
+import DiscountManagerModal from './components/DiscountManagerModal';
 import TransactionHistoryModal from './components/TransactionHistoryModal';
 import UserManagerModal from './components/UserManagerModal';
 import { getProducts, getCategories, createProduct, updateProduct, deleteProduct, createCategory, createTransaction } from './api';
@@ -47,14 +48,14 @@ export default function App() {
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showSalesReport, setShowSalesReport] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
-  const [showTransactionHistory, setShowTransactionHistory] = useState(false);
-  const [showUserManager, setShowUserManager] = useState(false);
+  const [showDiscountManager, setShowDiscountManager] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
 
   // Derived
   const totalBelanja = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const paymentNum = Number(paymentAmount) || 0;
   const kembalian = paymentNum - totalBelanja;
-  const isAdmin = currentUser?.role === 'admin';
 
   // Check auth on mount
   useEffect(() => {
@@ -97,10 +98,6 @@ export default function App() {
     setCurrentUser(null);
     setCart([]);
     setPaymentAmount('');
-    setShowSalesReport(false);
-    setShowTrash(false);
-    setShowTransactionHistory(false);
-    setShowUserManager(false);
     toast.success('Logout berhasil');
   };
 
@@ -159,7 +156,24 @@ export default function App() {
     setShowQtyModal(true);
   };
 
+  const getDiscountedPrice = (product) => {
+    let price = Number(product.price);
+    if (!product.discount_type || product.discount_type === 'none') return price;
+    
+    let discount = 0;
+    let discountValue = Number(product.discount_value) || 0;
+    
+    if (product.discount_type === 'percent') {
+      discount = (price * discountValue) / 100;
+    } else if (product.discount_type === 'fixed') {
+      discount = discountValue;
+    }
+    
+    return Math.max(0, price - discount);
+  };
+
   const handleAddToCart = (product, qty) => {
+    const finalPrice = getDiscountedPrice(product);
     setCart(prev => {
       const existing = prev.find(item => item.product_id === product.id);
       if (existing) {
@@ -179,7 +193,8 @@ export default function App() {
         return [...prev, {
           product_id: product.id,
           product_name: product.name,
-          price: Number(product.price),
+          price: finalPrice,
+          original_price: Number(product.price),
           quantity: qty,
           stock: product.stock,
           category_name: product.category_name
@@ -278,12 +293,14 @@ export default function App() {
             totalBelanja={totalBelanja}
             paymentAmount={paymentNum}
             kembalian={kembalian}
+            cartCount={cart.length}
             formatRupiah={formatRupiah}
             onShowReport={() => setShowSalesReport(true)}
-            onShowHistory={() => setShowTransactionHistory(true)}
-            onShowUsers={() => setShowUserManager(true)}
+            onShowHistory={() => setShowHistory(true)}
+            onShowAccount={() => setShowAccount(true)}
+            onShowDiscountManager={() => setShowDiscountManager(true)}
             onLogout={handleLogout}
-            user={currentUser}
+            currentUser={currentUser}
           />
 
           <div className="main-content">
@@ -302,7 +319,8 @@ export default function App() {
               onManageCategory={() => setShowCategoryManager(true)}
               onShowTrash={() => setShowTrash(true)}
               formatRupiah={formatRupiah}
-              isAdmin={isAdmin}
+              getDiscountedPrice={getDiscountedPrice}
+              isAdmin={currentUser?.role === 'admin'}
             />
 
             <CartPanel
@@ -319,7 +337,7 @@ export default function App() {
             />
           </div>
 
-          {isAdmin && showProductForm && (
+          {showProductForm && (
             <ProductFormModal
               product={editingProduct}
               categories={categories}
@@ -329,7 +347,7 @@ export default function App() {
             />
           )}
 
-          {isAdmin && showCategoryManager && (
+          {showCategoryManager && (
             <CategoryManagerModal
               categories={categories}
               onClose={() => setShowCategoryManager(false)}
@@ -355,14 +373,14 @@ export default function App() {
             />
           )}
 
-          {isAdmin && showSalesReport && (
+          {showSalesReport && (
             <SalesReportModal 
               onClose={() => setShowSalesReport(false)} 
               formatRupiah={formatRupiah} 
             />
           )}
 
-          {isAdmin && showTrash && (
+          {showTrash && (
             <TrashModal
               onClose={() => setShowTrash(false)}
               onRestored={loadData}
@@ -370,17 +388,25 @@ export default function App() {
             />
           )}
 
-          {isAdmin && showTransactionHistory && (
-            <TransactionHistoryModal
-              onClose={() => setShowTransactionHistory(false)}
+          {showDiscountManager && (
+            <DiscountManagerModal
+              isOpen={showDiscountManager}
+              onClose={() => setShowDiscountManager(false)}
               formatRupiah={formatRupiah}
             />
           )}
 
-          {isAdmin && showUserManager && (
+          {showHistory && (
+            <TransactionHistoryModal
+              onClose={() => setShowHistory(false)}
+              formatRupiah={formatRupiah}
+            />
+          )}
+
+          {showAccount && (
             <UserManagerModal
               currentUser={currentUser}
-              onClose={() => setShowUserManager(false)}
+              onClose={() => setShowAccount(false)}
               onCurrentUserUpdated={setCurrentUser}
             />
           )}
