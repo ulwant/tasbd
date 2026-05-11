@@ -110,29 +110,4 @@ export default function Navbar({ totalBelanja, paymentAmount, kembalian, cartCou
       </div>
     </nav>
   );
-}>
-          <FiShoppingCart size={20} color="#8b949e" />
-          {cartCount > 0 && (
-            <span style={{
-              position: 'absolute',
-              top: -6,
-              right: -8,
-              background: '#f85149',
-              color: '#fff',
-              fontSize: '0.6rem',
-              fontWeight: 700,
-              width: 16,
-              height: 16,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              {cartCount}
-            </span>
-          )}
-        </div>
-      </div>
-    </nav>
-  );
 }
