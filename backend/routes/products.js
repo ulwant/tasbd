@@ -3,6 +3,8 @@ const router = express.Router();
 const pool = require('../db');
 const { verifyAdmin } = require('../middleware/auth');
 
+// ===== GET Routes (Specific first, then Generic) =====
+
 // GET all products (exclude soft deleted)
 router.get('/', async (req, res) => {
   try {
@@ -32,21 +34,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET single product (exclude soft deleted)
-router.get('/:id', async (req, res) => {
-  try {
-    const [rows] = await pool.query(
-      'SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ? AND p.deleted_at IS NULL',
-      [req.params.id]
-    );
-    if (rows.length === 0) return res.status(404).json({ error: 'Produk tidak ditemukan' });
-    res.json(rows[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// GET all products with active discounts (admin only)
+// GET all products with active discounts (admin only) - SPECIFIC ROUTE
 router.get('/admin/discounts', verifyAdmin, async (req, res) => {
   try {
     const [rows] = await pool.query(
@@ -60,6 +48,38 @@ router.get('/admin/discounts', verifyAdmin, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// GET deleted products (trash) - SPECIFIC ROUTE
+router.get('/trash/list', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT p.*, c.name as category_name 
+       FROM products p 
+       LEFT JOIN categories c ON p.category_id = c.id
+       WHERE p.deleted_at IS NOT NULL
+       ORDER BY p.deleted_at DESC`
+    );
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET single product (exclude soft deleted) - GENERIC ROUTE (last GET)
+router.get('/:id', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ? AND p.deleted_at IS NULL',
+      [req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Produk tidak ditemukan' });
+    res.json(rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ===== POST Routes =====
 
 // POST create product
 router.post('/', async (req, res) => {
@@ -78,21 +98,9 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT update product
-router.put('/:id', async (req, res) => {
-  try {
-    const { name, price, stock, category_id } = req.body;
-    await pool.query(
-      'UPDATE products SET name = ?, price = ?, stock = ?, category_id = ? WHERE id = ? AND deleted_at IS NULL',
-      [name, price, stock, category_id || null, req.params.id]
-    );
-    res.json({ id: parseInt(req.params.id), name, price, stock, category_id });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+// ===== PUT Routes (Specific paths before generic :id) =====
 
-// PUT update product discount (admin only)
+// PUT update product discount (admin only) - SPECIFIC ROUTE
 router.put('/:id/discount', verifyAdmin, async (req, res) => {
   try {
     const { discount_type, discount_value } = req.body;
@@ -124,39 +132,7 @@ router.put('/:id/discount', verifyAdmin, async (req, res) => {
   }
 });
 
-// DELETE product — soft delete
-router.delete('/:id', async (req, res) => {
-  try {
-    const [result] = await pool.query(
-      'UPDATE products SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL',
-      [req.params.id]
-    );
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Produk tidak ditemukan atau sudah dihapus' });
-    }
-    res.json({ message: 'Produk berhasil dihapus' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// GET deleted products (trash)
-router.get('/trash/list', async (req, res) => {
-  try {
-    const [rows] = await pool.query(
-      `SELECT p.*, c.name as category_name 
-       FROM products p 
-       LEFT JOIN categories c ON p.category_id = c.id
-       WHERE p.deleted_at IS NOT NULL
-       ORDER BY p.deleted_at DESC`
-    );
-    res.json(rows);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// PUT restore product from trash
+// PUT restore product from trash - SPECIFIC ROUTE
 router.put('/:id/restore', async (req, res) => {
   try {
     const [result] = await pool.query(
@@ -172,7 +148,23 @@ router.put('/:id/restore', async (req, res) => {
   }
 });
 
-// DELETE product permanently (hard delete)
+// PUT update product - GENERIC ROUTE
+router.put('/:id', async (req, res) => {
+  try {
+    const { name, price, stock, category_id } = req.body;
+    await pool.query(
+      'UPDATE products SET name = ?, price = ?, stock = ?, category_id = ? WHERE id = ? AND deleted_at IS NULL',
+      [name, price, stock, category_id || null, req.params.id]
+    );
+    res.json({ id: parseInt(req.params.id), name, price, stock, category_id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ===== DELETE Routes (Specific paths before generic :id) =====
+
+// DELETE product permanently (hard delete) - SPECIFIC ROUTE
 router.delete('/:id/permanent', async (req, res) => {
   try {
     const [result] = await pool.query(
@@ -183,6 +175,22 @@ router.delete('/:id/permanent', async (req, res) => {
       return res.status(404).json({ error: 'Produk tidak ditemukan di trash' });
     }
     res.json({ message: 'Produk berhasil dihapus permanen' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE product (soft delete) - GENERIC ROUTE
+router.delete('/:id', async (req, res) => {
+  try {
+    const [result] = await pool.query(
+      'UPDATE products SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL',
+      [req.params.id]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Produk tidak ditemukan atau sudah dihapus' });
+    }
+    res.json({ message: 'Produk berhasil dihapus' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
