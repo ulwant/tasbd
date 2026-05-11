@@ -1,7 +1,7 @@
 import React from 'react';
-import { FiShoppingCart, FiFileText, FiLogOut } from 'react-icons/fi';
+import { FiShoppingCart, FiFileText, FiLogOut, FiTag } from 'react-icons/fi';
 
-export default function Navbar({ totalBelanja, paymentAmount, kembalian, cartCount, formatRupiah, onShowReport, onLogout }) {
+export default function Navbar({ totalBelanja, paymentAmount, kembalian, cartCount, formatRupiah, onShowReport, onShowDiscountManager, onLogout, currentUser }) {
   return (
     <nav className="navbar" id="navbar-main">
       <div className="navbar-brand">
@@ -28,6 +28,26 @@ export default function Navbar({ totalBelanja, paymentAmount, kembalian, cartCou
         >
           <FiFileText /> Rekap Harian
         </button>
+
+        {currentUser?.role === 'admin' && onShowDiscountManager && (
+          <button 
+            className="btn" 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              background: 'transparent', 
+              border: '1px solid #238636', 
+              color: '#238636',
+              padding: '6px 12px',
+              fontSize: '0.85rem',
+              cursor: 'pointer'
+            }}
+            onClick={onShowDiscountManager}
+          >
+            <FiTag /> Kelola Diskon
+          </button>
+        )}
 
         {onLogout && (
           <button 
@@ -90,24 +110,7 @@ export default function Navbar({ totalBelanja, paymentAmount, kembalian, cartCou
       </div>
     </nav>
   );
-}
-
-      <div className="navbar-stats">
-        <div className="navbar-stat">
-          <div className="navbar-stat-label">Total Belanja</div>
-          <div className="navbar-stat-value">{formatRupiah(totalBelanja)}</div>
-        </div>
-        <div className="navbar-stat">
-          <div className="navbar-stat-label">Uang Bayar</div>
-          <div className="navbar-stat-value blue">{formatRupiah(paymentAmount)}</div>
-        </div>
-        <div className="navbar-stat">
-          <div className="navbar-stat-label">Kembalian</div>
-          <div className="navbar-stat-value green">
-            {kembalian >= 0 ? formatRupiah(kembalian) : '-' + formatRupiah(Math.abs(kembalian))}
-          </div>
-        </div>
-        <div style={{ position: 'relative', marginLeft: 8 }}>
+}>
           <FiShoppingCart size={20} color="#8b949e" />
           {cartCount > 0 && (
             <span style={{

@@ -24,7 +24,42 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Keranjang kosong' });
     }
 
-    const total_amount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    // Get product details including discounts
+    let total_amount = 0;
+    const itemsWithDiscount = [];
+    
+    for (const item of items) {
+      const [productRows] = await conn.query(
+        'SELECT price, discount_type, discount_value FROM products WHERE id = ? AND deleted_at IS NULL',
+        [item.product_id]
+      );
+      
+      if (productRows.length === 0) {
+        throw new Error(`Produk dengan ID ${item.product_id} tidak ditemukan`);
+      }
+      
+      const product = productRows[0];
+      let discountAmount = 0;
+      
+      // Calculate discount
+      if (product.discount_type === 'percent') {
+        discountAmount = (product.price * product.discount_value) / 100;
+      } else if (product.discount_type === 'fixed') {
+        discountAmount = product.discount_value;
+      }
+      
+      const finalPrice = Math.max(0, product.price - discountAmount);
+      const subtotal = finalPrice * item.quantity;
+      total_amount += subtotal;
+      
+      itemsWithDiscount.push({
+        ...item,
+        final_price: finalPrice,
+        discount_amount: discountAmount,
+        subtotal: subtotal
+      });
+    }
+    
     if (payment_amount < total_amount) {
       return res.status(400).json({ error: 'Pembayaran kurang' });
     }
@@ -42,10 +77,10 @@ router.post('/', async (req, res) => {
     const transactionId = txResult.insertId;
 
     // Insert items & update stock
-    for (const item of items) {
+    for (const item of itemsWithDiscount) {
       await conn.query(
         'INSERT INTO transaction_items (transaction_id, product_id, product_name, price, quantity, subtotal) VALUES (?, ?, ?, ?, ?, ?)',
-        [transactionId, item.product_id, item.product_name, item.price, item.quantity, item.price * item.quantity]
+        [transactionId, item.product_id, item.product_name, item.final_price, item.quantity, item.subtotal]
       );
       await conn.query(
         'UPDATE products SET stock = stock - ? WHERE id = ?',
@@ -61,7 +96,7 @@ router.post('/', async (req, res) => {
       total_amount,
       payment_amount,
       change_amount,
-      items,
+      items: itemsWithDiscount,
       created_at: new Date()
     });
   } catch (error) {

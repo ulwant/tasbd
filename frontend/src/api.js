@@ -30,6 +30,14 @@ export const createProduct = (data) => request('/products', { method: 'POST', bo
 export const updateProduct = (id, data) => request(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteProduct = (id) => request(`/products/${id}`, { method: 'DELETE' });
 
+// Discounts (Admin only)
+export const getDiscountedProducts = () => request('/products/admin/discounts');
+export const setProductDiscount = (id, discountType, discountValue) =>
+  request(`/products/${id}/discount`, {
+    method: 'PUT',
+    body: JSON.stringify({ discount_type: discountType, discount_value: discountValue })
+  });
+
 // Categories
 export const getCategories = () => request('/categories');
 export const createCategory = (data) => request('/categories', { method: 'POST', body: JSON.stringify(data) });

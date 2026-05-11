@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const { verifyAdmin } = require('../middleware/auth');
 
 // GET all products (exclude soft deleted)
 router.get('/', async (req, res) => {
@@ -45,6 +46,21 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// GET all products with active discounts (admin only)
+router.get('/admin/discounts', verifyAdmin, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, name, price, discount_type, discount_value, category_id
+       FROM products 
+       WHERE deleted_at IS NULL AND discount_type != 'none'
+       ORDER BY name`
+    );
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // POST create product
 router.post('/', async (req, res) => {
   try {
@@ -71,6 +87,38 @@ router.put('/:id', async (req, res) => {
       [name, price, stock, category_id || null, req.params.id]
     );
     res.json({ id: parseInt(req.params.id), name, price, stock, category_id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT update product discount (admin only)
+router.put('/:id/discount', verifyAdmin, async (req, res) => {
+  try {
+    const { discount_type, discount_value } = req.body;
+    
+    if (!['none', 'percent', 'fixed'].includes(discount_type)) {
+      return res.status(400).json({ error: 'Invalid discount type' });
+    }
+    
+    if (discount_type === 'percent' && (discount_value < 0 || discount_value > 100)) {
+      return res.status(400).json({ error: 'Discount percent must be between 0 and 100' });
+    }
+    
+    if (discount_type === 'fixed' && discount_value < 0) {
+      return res.status(400).json({ error: 'Discount value cannot be negative' });
+    }
+
+    const [result] = await pool.query(
+      'UPDATE products SET discount_type = ?, discount_value = ? WHERE id = ? AND deleted_at IS NULL',
+      [discount_type, discount_value || 0, req.params.id]
+    );
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Produk tidak ditemukan' });
+    }
+    
+    res.json({ message: 'Diskon produk berhasil diperbarui', id: parseInt(req.params.id), discount_type, discount_value });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

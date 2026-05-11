@@ -10,6 +10,7 @@ import QtyModal from './components/QtyModal';
 import CategoryManagerModal from './components/CategoryManagerModal';
 import SalesReportModal from './components/SalesReportModal';
 import TrashModal from './components/TrashModal';
+import DiscountManagerModal from './components/DiscountManagerModal';
 import { getProducts, getCategories, createProduct, updateProduct, deleteProduct, createCategory, createTransaction } from './api';
 import toast from 'react-hot-toast';
 
@@ -45,6 +46,7 @@ export default function App() {
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showSalesReport, setShowSalesReport] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
+  const [showDiscountManager, setShowDiscountManager] = useState(false);
 
   // Derived
   const totalBelanja = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -272,7 +274,9 @@ export default function App() {
             cartCount={cart.length}
             formatRupiah={formatRupiah}
             onShowReport={() => setShowSalesReport(true)}
+            onShowDiscountManager={() => setShowDiscountManager(true)}
             onLogout={handleLogout}
+            currentUser={currentUser}
           />
 
           <div className="main-content">
@@ -354,6 +358,14 @@ export default function App() {
             <TrashModal
               onClose={() => setShowTrash(false)}
               onRestored={loadData}
+              formatRupiah={formatRupiah}
+            />
+          )}
+
+          {showDiscountManager && (
+            <DiscountManagerModal
+              isOpen={showDiscountManager}
+              onClose={() => setShowDiscountManager(false)}
               formatRupiah={formatRupiah}
             />
           )}

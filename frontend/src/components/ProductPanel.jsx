@@ -146,6 +146,23 @@ export default function ProductPanel({
                 {product.stock <= 5 && product.stock > 0 && ' ⚠️'}
                 {product.stock === 0 && ' (Habis)'}
               </div>
+              {product.discount_type && product.discount_type !== 'none' && (
+                <div style={{
+                  backgroundColor: '#e8f5e9',
+                  color: '#2e7d32',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  marginTop: '4px',
+                  textAlign: 'center'
+                }}>
+                  {product.discount_type === 'percent' 
+                    ? `Diskon ${product.discount_value}%` 
+                    : `Diskon ${formatRupiah(product.discount_value)}`
+                  }
+                </div>
+              )}
               {product.category_name && (
                 <span className={`product-card-category ${getCategoryClass(product.category_name)}`}>
                   {product.category_name}
