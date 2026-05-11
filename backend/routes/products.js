@@ -141,4 +141,60 @@ router.delete('/:id(\\d+)/permanent', async (req, res) => {
   }
 });
 
+// PUT set product discount (admin only)
+router.put('/:id(\\d+)/discount', requireAdmin, async (req, res) => {
+  try {
+    const { discount_type, discount_value } = req.body;
+    
+    // Validate discount_type
+    if (!['none', 'percent', 'fixed'].includes(discount_type)) {
+      return res.status(400).json({ error: 'Tipe diskon harus none, percent, atau fixed' });
+    }
+    
+    // Validate discount_value
+    if (discount_value === undefined || discount_value === null) {
+      return res.status(400).json({ error: 'Nilai diskon wajib diisi' });
+    }
+    
+    const value = parseFloat(discount_value);
+    if (isNaN(value) || value < 0) {
+      return res.status(400).json({ error: 'Nilai diskon harus >= 0' });
+    }
+    
+    // Validate percentage range
+    if (discount_type === 'percent' && value > 100) {
+      return res.status(400).json({ error: 'Diskon persentase maksimal 100%' });
+    }
+    
+    const result = await pool.query(
+      'UPDATE products SET discount_type = $1, discount_value = $2, updated_at = NOW() WHERE id = $3 AND deleted_at IS NULL RETURNING *',
+      [discount_type, value, req.params.id]
+    );
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Produk tidak ditemukan' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET products with discounts (admin only)
+router.get('/admin/discounts', requireAdmin, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT p.*, c.name as category_name 
+       FROM products p 
+       LEFT JOIN categories c ON p.category_id = c.id
+       WHERE p.deleted_at IS NULL AND p.discount_type != 'none'
+       ORDER BY p.name`
+    );
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

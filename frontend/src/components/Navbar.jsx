@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiClock, FiFileText, FiLogOut, FiUsers } from 'react-icons/fi';
+import { FiClock, FiFileText, FiLogOut, FiUsers, FiPercent } from 'react-icons/fi';
 
 export default function Navbar({
   totalBelanja,
@@ -9,6 +9,7 @@ export default function Navbar({
   onShowReport,
   onShowHistory,
   onShowUsers,
+  onShowDiscounts,
   onLogout,
   user
 }) {
@@ -26,6 +27,23 @@ export default function Navbar({
       <div style={{ marginLeft: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         {isAdmin && (
           <>
+        <button 
+          className="btn" 
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            background: '#238636', 
+            border: '1px solid #2ea043', 
+            color: '#ffffff',
+            padding: '6px 12px',
+            fontSize: '0.85rem'
+          }}
+          onClick={onShowDiscounts}
+        >
+          <FiPercent /> Kelola Diskon
+        </button>
+
         <button 
           className="btn" 
           style={{ 

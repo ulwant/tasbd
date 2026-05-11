@@ -46,7 +46,9 @@ async function initDatabase() {
           category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
           created_at TIMESTAMPTZ DEFAULT NOW(),
           updated_at TIMESTAMPTZ DEFAULT NOW(),
-          deleted_at TIMESTAMPTZ NULL
+          deleted_at TIMESTAMPTZ NULL,
+          discount_type VARCHAR(20) DEFAULT 'none' CHECK (discount_type IN ('none', 'percent', 'fixed')),
+          discount_value NUMERIC(12,2) DEFAULT 0
         )
       `);
 
@@ -77,6 +79,8 @@ async function initDatabase() {
       await pool.query('ALTER TABLE categories ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ NULL');
       await pool.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()');
       await pool.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ NULL');
+      await pool.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_type VARCHAR(20) DEFAULT \'none\' CHECK (discount_type IN (\'none\', \'percent\', \'fixed\'))');
+      await pool.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_value NUMERIC(12,2) DEFAULT 0');
       await pool.query('ALTER TABLE transactions ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE SET NULL');
     })();
   }

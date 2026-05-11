@@ -25,7 +25,40 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Keranjang kosong' });
     }
 
-    const total_amount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    // Calculate total with discounts
+    let total_amount = 0;
+    const itemsWithDiscount = [];
+    
+    for (const item of items) {
+      // Get product discount info from database
+      const productResult = await client.query(
+        'SELECT discount_type, discount_value FROM products WHERE id = $1',
+        [item.product_id]
+      );
+      
+      let itemTotal = item.price * item.quantity;
+      let discountAmount = 0;
+      
+      if (productResult.rows.length > 0) {
+        const product = productResult.rows[0];
+        
+        if (product.discount_type === 'percent') {
+          discountAmount = (product.discount_value / 100) * itemTotal;
+        } else if (product.discount_type === 'fixed') {
+          discountAmount = product.discount_value * item.quantity;
+        }
+      }
+      
+      const finalItemTotal = itemTotal - discountAmount;
+      total_amount += finalItemTotal;
+      
+      itemsWithDiscount.push({
+        ...item,
+        discount_amount: discountAmount,
+        final_total: finalItemTotal
+      });
+    }
+
     if (payment_amount < total_amount) {
       return res.status(400).json({ error: 'Pembayaran kurang' });
     }
@@ -43,10 +76,10 @@ router.post('/', async (req, res) => {
     const transactionId = txResult.rows[0].id;
 
     // Insert items & update stock
-    for (const item of items) {
+    for (const item of itemsWithDiscount) {
       await client.query(
         'INSERT INTO transaction_items (transaction_id, product_id, product_name, price, quantity, subtotal) VALUES ($1, $2, $3, $4, $5, $6)',
-        [transactionId, item.product_id, item.product_name, item.price, item.quantity, item.price * item.quantity]
+        [transactionId, item.product_id, item.product_name, item.price, item.quantity, item.final_total]
       );
       await client.query(
         'UPDATE products SET stock = stock - $1, updated_at = NOW() WHERE id = $2',
@@ -63,7 +96,7 @@ router.post('/', async (req, res) => {
       payment_amount,
       change_amount,
       cashier: req.user.username,
-      items,
+      items: itemsWithDiscount,
       created_at: new Date()
     });
   } catch (error) {
