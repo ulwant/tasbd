@@ -11,6 +11,8 @@ import CategoryManagerModal from './components/CategoryManagerModal';
 import SalesReportModal from './components/SalesReportModal';
 import TrashModal from './components/TrashModal';
 import DiscountManagerModal from './components/DiscountManagerModal';
+import TransactionHistoryModal from './components/TransactionHistoryModal';
+import UserManagerModal from './components/UserManagerModal';
 import { getProducts, getCategories, createProduct, updateProduct, deleteProduct, createCategory, createTransaction } from './api';
 import toast from 'react-hot-toast';
 
@@ -47,6 +49,8 @@ export default function App() {
   const [showSalesReport, setShowSalesReport] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
   const [showDiscountManager, setShowDiscountManager] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
 
   // Derived
   const totalBelanja = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -292,6 +296,8 @@ export default function App() {
             cartCount={cart.length}
             formatRupiah={formatRupiah}
             onShowReport={() => setShowSalesReport(true)}
+            onShowHistory={() => setShowHistory(true)}
+            onShowAccount={() => setShowAccount(true)}
             onShowDiscountManager={() => setShowDiscountManager(true)}
             onLogout={handleLogout}
             currentUser={currentUser}
@@ -387,6 +393,21 @@ export default function App() {
               isOpen={showDiscountManager}
               onClose={() => setShowDiscountManager(false)}
               formatRupiah={formatRupiah}
+            />
+          )}
+
+          {showHistory && (
+            <TransactionHistoryModal
+              onClose={() => setShowHistory(false)}
+              formatRupiah={formatRupiah}
+            />
+          )}
+
+          {showAccount && (
+            <UserManagerModal
+              currentUser={currentUser}
+              onClose={() => setShowAccount(false)}
+              onCurrentUserUpdated={setCurrentUser}
             />
           )}
         </div>

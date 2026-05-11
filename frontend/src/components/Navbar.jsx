@@ -1,7 +1,7 @@
 import React from 'react';
-import { FiShoppingCart, FiFileText, FiLogOut, FiTag } from 'react-icons/fi';
+import { FiShoppingCart, FiFileText, FiLogOut, FiTag, FiClock, FiUser } from 'react-icons/fi';
 
-export default function Navbar({ totalBelanja, paymentAmount, kembalian, cartCount, formatRupiah, onShowReport, onShowDiscountManager, onLogout, currentUser }) {
+export default function Navbar({ totalBelanja, paymentAmount, kembalian, cartCount, formatRupiah, onShowReport, onShowHistory, onShowAccount, onShowDiscountManager, onLogout, currentUser }) {
   return (
     <nav className="navbar" id="navbar-main">
       <div className="navbar-brand">
@@ -27,6 +27,40 @@ export default function Navbar({ totalBelanja, paymentAmount, kembalian, cartCou
           onClick={onShowReport}
         >
           <FiFileText /> Rekap Harian
+        </button>
+
+        <button 
+          className="btn" 
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            background: 'transparent', 
+            border: '1px solid #30363d', 
+            color: '#c9d1d9',
+            padding: '6px 12px',
+            fontSize: '0.85rem'
+          }}
+          onClick={onShowHistory}
+        >
+          <FiClock /> History Transaksi
+        </button>
+
+        <button 
+          className="btn" 
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            background: 'transparent', 
+            border: '1px solid #30363d', 
+            color: '#c9d1d9',
+            padding: '6px 12px',
+            fontSize: '0.85rem'
+          }}
+          onClick={onShowAccount}
+        >
+          <FiUser /> Akun
         </button>
 
         {currentUser?.role === 'admin' && onShowDiscountManager && (
